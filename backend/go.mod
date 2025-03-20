@@ -3,15 +3,19 @@ module backend
 go 1.24.1
 
 require (
+	github.com/gofiber/cors v0.2.2
+	github.com/gofiber/fiber/v2 v2.52.6
+	github.com/gofiber/logger v0.2.4
+	github.com/joho/godotenv v1.5.1
+	github.com/lib/pq v1.10.9
+)
+
+require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
-	github.com/gofiber/cors v0.2.2 // indirect
 	github.com/gofiber/fiber v1.13.3 // indirect
-	github.com/gofiber/fiber/v2 v2.52.6 // indirect
-	github.com/gofiber/logger v0.2.4 // indirect
 	github.com/gofiber/utils v0.0.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/schema v1.1.0 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

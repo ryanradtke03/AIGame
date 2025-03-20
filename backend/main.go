@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/cors"
-	"github.com/gofiber/logger"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/joho/godotenv"
 
 	"backend/routes"
@@ -28,8 +28,13 @@ func main() {
 	app.Use(logger.New()) // Logger Middleware
 	app.Use(cors.New()) // CORS Middleware
 
-	// Connect to database
+	// // Connect to database
 	database.ConnectDB()
+
+	// Test Route (Fix: Ensure a valid root `/` route)
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.SendString("🚀 Welcome to Go + Fiber + PostgreSQL API!")
+	})
 
 	// Routes
 	routes.SetupRoutes(app)
