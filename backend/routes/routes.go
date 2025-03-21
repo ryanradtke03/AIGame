@@ -2,7 +2,6 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"backend/controllers"
 )
 
 func SetupRoutes(app *fiber.App) {
@@ -13,7 +12,4 @@ func SetupRoutes(app *fiber.App) {
 		return c.JSON(fiber.Map{"message": "pong"})
 	})
 
-	// User routes
-	api.Get("/users", controllers.GetUsers)
-	api.Post("/users", controllers.CreateUser)
 }
