@@ -2,7 +2,7 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"backend/routes"
+	"backend/controllers"
 )
 
 func RegisterRoutes(app *fiber.App) {
@@ -13,9 +13,19 @@ func RegisterRoutes(app *fiber.App) {
 		return c.JSON(fiber.Map{"message": "pong"})
 	})
 
-	routes.RegisterRoomRoutes(api.Group("/rooms"))
-	routes.RegisterPlayerRoutes(api.Group("/players"))
-	routes.RegisterChatRoutes(api.Group("/chat"))
-	routes.RegisterVoteRoutes(api.Group("/vote"))
+	room := api.Group("/rooms")
+	room.Post("/create", controllers.CreateRoom)
+	room.Post("/join", controllers.JoinRoom)
+	room.Post("/start", controllers.StartGame)
 
+	player := api.Group("/players")
+	player.Post("/reconnect", controllers.ReconnectPlayer)
+
+	chat := api.Group("/chat")
+	chat.Post("/send", controllers.SendMessage)
+	chat.Get("/history/:roomID", controllers.GetChatHistory)
+
+	vote := api.Group("/vote")
+	vote.Post("/submit", controllers.SubmitVote)
+	vote.Get("/results/:roomID/:roundNumber", controllers.GetVoteResults)
 }
