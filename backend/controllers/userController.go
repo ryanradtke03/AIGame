@@ -7,19 +7,12 @@ import (
 )
 
 func GetUsers(c *fiber.Ctx) error {
-	rows, err := database.DB.Query("SELECT id, name FROM users")
-	if err != nil {
-		return c.Status(500).SendString("Database error")
-	}
-	defer rows.Close()
-
 	var users []models.User
-	for rows.Next() {
-		var user models.User
-		if err := rows.Scan(&user.ID, &user.Name); err != nil {
-			return c.Status(500).SendString("Error scanning row")
-		}
-		users = append(users, user)
+
+	// ✅ Correct way to fetch users in GORM
+	result := database.DB.Raw("SELECT id, name FROM users").Scan(&users)
+	if result.Error != nil {
+		return c.Status(500).SendString("Database error")
 	}
 
 	return c.JSON(users)
@@ -31,8 +24,8 @@ func CreateUser(c *fiber.Ctx) error {
 		return c.Status(400).SendString("Invalid request body")
 	}
 
-	_, err := database.DB.Exec("INSERT INTO users (name) VALUES ($1)", user.Name)
-	if err != nil {
+	// ✅ Correct way to insert users in GORM
+	if err := database.DB.Create(&user).Error; err != nil {
 		return c.Status(500).SendString("Error inserting user")
 	}
 

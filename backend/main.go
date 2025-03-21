@@ -31,6 +31,9 @@ func main() {
 	// // Connect to database
 	database.ConnectDB()
 
+	// Auto-migrate tables
+	database.AutoMigrateTables()
+
 	// Test Route (Fix: Ensure a valid root `/` route)
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("🚀 Welcome to Go + Fiber + PostgreSQL API!")
