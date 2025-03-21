@@ -13,7 +13,7 @@ func AutoMigrateTables() {
     }
 
     DB = DB.Debug() // This will print SQL queries to the console
-    err := DB.AutoMigrate(&models.User{}) // Add other models here
+    err := DB.AutoMigrate(models.AllModels...) // Add other models here
 
     if err != nil {
         fmt.Println("❌ Error migrating tables:", err)
