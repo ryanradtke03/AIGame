@@ -1,6 +1,8 @@
 package ws
 
 import (
+	"backend/database"
+	"backend/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/websocket/v2"
 	"sync"
@@ -38,6 +40,11 @@ func WebSocketHandler(c *fiber.Ctx) error {
 	return fiber.ErrUpgradeRequired
 }
 
+type IncomingMessage struct {
+	Event    string `json:"event"`
+	Message  string `json:"message,omitempty"`
+	Username string `json:"username,omitempty"`
+}
 
 func JoinRoomSocket(c *websocket.Conn) {
 	roomCode := c.Locals("roomCode").(string)
@@ -47,13 +54,6 @@ func JoinRoomSocket(c *websocket.Conn) {
 	mu.Lock()
 	RoomConnections[roomCode] = append(RoomConnections[roomCode], c)
 	mu.Unlock()
-
-	type IncomingMessage struct {
-		Event    string `json:"event"`
-		Message  string `json:"message,omitempty"`
-		Username string `json:"username,omitempty"`
-	}
-
 
 	// Loop through messages and broadcast to others in room
 	// If there is an error, break the loop
@@ -68,29 +68,7 @@ func JoinRoomSocket(c *websocket.Conn) {
 			continue // skip Invalid JSON
 		}
 
-		// Handle different event types
-		switch msg.Event {
-		// Chat event
-		case "chat":
-			// Broadcast chat message to room
-			outgoing := map[string]string{
-				"event":    "chat",
-				"username": msg.Username,
-				"message":  msg.Message,
-			}
-			BroadcastJSON(roomCode, outgoing)
-		
-		// Add more event types here
-
-
-		// Default case for invalid event type
-		default:
-			outgoing := map[string]string{
-				"event": "error",
-				"message": "Invalid event type",
-			}
-			c.WriteJSON(outgoing)
-		}
+		handleMessage(msg, roomCode);
 	}
 
 	// Remove on disconnect
@@ -103,6 +81,36 @@ func JoinRoomSocket(c *websocket.Conn) {
 		}
 	}
 	mu.Unlock()
+}
+
+func handleMessage(msg IncomingMessage, roomCode string) {
+	switch msg.Event {
+	case "chat":
+		roomID := getRoomIDFromCode(roomCode)
+
+		// Store in DB
+		if roomID != 0 {
+			database.DB.Create(&models.ChatMessage{
+				RoomID:   roomID,
+				Username: msg.Username,
+				Message:  msg.Message,
+			})
+		}
+
+		// Broadcast to room
+		BroadcastJSON(roomCode, map[string]string{
+			"event":    "chat",
+			"username": msg.Username,
+			"message":  msg.Message,
+		})
+	
+	default:
+		// Invalid event
+		BroadcastJSON(roomCode, map[string]string{
+			"event": "error",
+			"message": "Invalid event",
+		})
+	}
 }
 
 
@@ -123,4 +131,12 @@ func broadcastToRoom(roomCode string, msg []byte) {
 	for _, conn := range RoomConnections[roomCode] {
 		conn.WriteMessage(websocket.TextMessage, msg)
 	}
+}
+
+func getRoomIDFromCode(code string) uint {
+	var room models.Room
+	if err := database.DB.Where("code = ?", code).First(&room).Error; err != nil {
+		return 0
+	}
+	return room.ID
 }

@@ -3,12 +3,14 @@ package controllers
 import (
 	"backend/database"
 	"backend/models"
+	"backend/ws"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"math/rand"
 	"time"
 )
 
+// Create Room -------------------------------------------------------------------------
 // Request payload for creating a room
 type CreateRoomRequest struct {
 	Username string `json:"username"`
@@ -79,11 +81,69 @@ func CreateRoom(c *fiber.Ctx) error {
 	})
 }
 
-func JoinRoom(c *fiber.Ctx) error {
-	// TODO: Join room logic
-	return c.JSON(fiber.Map{"message": "Joined room"})
+// Join Room -------------------------------------------------------------------------
+type JoinRoomRequest struct {
+	Username string `json:"username"`
+	Code     string `json:"code"`
 }
 
+func JoinRoom(c *fiber.Ctx) error {
+
+	// Parse request body (JSON) (Needs username and room code)
+	var req JoinRoomRequest
+	if err := c.BodyParser(&req); err != nil || req.Username == "" || req.Code == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid request"})
+	}
+
+	// Find room by code
+	var room models.Room
+	if err := database.DB.Where("code = ?", req.Code).First(&room).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Room not found"})
+	}
+
+	// Check if room is full (max 6 players (for now))
+	var count int64
+	database.DB.Model(&models.RoomPlayer{}).Where("room+id = ?", room.ID).Count(&count)
+	if count >= 6 {
+		return c.Status(400).JSON(fiber.Map{"error": "Room is full"})
+	}
+
+	// Create a new player
+	sessionID := uuid.NewString()
+	player := models.Player{
+		Username:  req.Username,
+		SessionID: sessionID,
+	}
+	if err := database.DB.Create(&player).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to create player"})
+	}
+
+	// Add player to room
+	roomPlayer := models.RoomPlayer{
+		RoomID:    room.ID,
+		PlayerID:  &player.ID,
+		Username:  player.Username,
+		SessionID: sessionID,
+	}
+	if err := database.DB.Create(&roomPlayer).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to add player to room"})
+	}
+
+	// Broadcast "player_joined" to everyone in the room
+	ws.BroadcastJSON(room.Code, map[string]string{
+		"event":    "player_joined",
+		"username": req.Username,
+	})
+
+	// Return response
+	return c.JSON(fiber.Map{
+		"message":    "Joined room successfully",
+		"room_code":  room.Code,
+		"session_id": sessionID,
+	})
+}
+
+// Start Room / Game -------------------------------------------------------------------------
 type StartGameRequest struct {
 	RoomCode string `json:"room_code"`
 }
@@ -127,7 +187,11 @@ func StartGame(c *fiber.Ctx) error {
 	room.Status = "in_progress"
 	database.DB.Save(&room)
 
-	// TODO: Broadcast to WebSocket room that game started
+	// Broadcast "game_started" to everyone in the room
+	ws.BroadcastJSON(room.Code, map[string]string{
+		"event":   "game_started",
+		"message": "The game has begun!",
+	})
 	
 	// Return response (AI ID and message)
 	return c.JSON(fiber.Map{
