@@ -84,7 +84,54 @@ func JoinRoom(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Joined room"})
 }
 
+type StartGameRequest struct {
+	RoomCode string `json:"room_code"`
+}
+
 func StartGame(c *fiber.Ctx) error {
-	// TODO: Set room status to in_progress and assign AI
-	return c.JSON(fiber.Map{"message": "Game started"})
+	// Parse request body (JSON) (Needs room code)
+	var req StartGameRequest
+	if err := c.BodyParser(&req); err != nil || req.RoomCode == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "Invalid request"})
+	}
+
+	// Find room by code 
+	var room models.Room
+	if err := database.DB.Where("code = ?", req.RoomCode).First(&room).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{"error": "Room not found"})
+	}
+
+	// Check if already started
+	if room.Status == "in_progress" {
+		return c.Status(400).JSON(fiber.Map{"error": "Game already started"})
+	}
+
+	// Get players in room
+	var players []models.RoomPlayer
+	if err := database.DB.Where("room_id = ?", room.ID).Find(&players).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Could not fetch players"})
+	}
+
+	// Check if enough players
+	if len(players) < 2 {
+		return c.Status(400).JSON(fiber.Map{"error": "Need at least 2 players to start"})
+	}
+
+	// Make a player AI
+	rand.Seed(time.Now().UnixNano())
+	aiIndex := rand.Intn(len(players))
+	players[aiIndex].IsAI = true
+	database.DB.Save(&players[aiIndex])
+
+	// Update room status
+	room.Status = "in_progress"
+	database.DB.Save(&room)
+
+	// TODO: Broadcast to WebSocket room that game started
+	
+	// Return response (AI ID and message)
+	return c.JSON(fiber.Map{
+		"message": "Game started",
+		"ai_id":   players[aiIndex].ID, // You can remove this from response later
+	})
 }

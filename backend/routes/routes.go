@@ -2,10 +2,17 @@ package routes
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/websocket/v2"
 	"backend/controllers"
+	"backend/ws"
 )
 
 func RegisterRoutes(app *fiber.App) {
+	// WebSocket routes
+	app.Use("/ws/:roomCode", ws.WebSocketHandler)
+	app.Get("/ws/:roomCode", websocket.New(ws.JoinRoomSocket))
+
+	// API routes
 	api := app.Group("/api")
 
 	// Health check route
