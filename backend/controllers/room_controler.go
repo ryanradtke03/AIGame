@@ -187,15 +187,45 @@ func StartGame(c *fiber.Ctx) error {
 	room.Status = "in_progress"
 	database.DB.Save(&room)
 
+	// Create initial game round (Round 1)
+	gameRound := models.GameRound{
+		RoomID:      room.ID,
+		RoundNumber: 1,
+		AIRevealed:  false,
+	}
+	if err := database.DB.Create(&gameRound).Error; err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Failed to create initial round"})
+	}
+
 	// Broadcast "game_started" to everyone in the room
 	ws.BroadcastJSON(room.Code, map[string]string{
 		"event":   "game_started",
 		"message": "The game has begun!",
 	})
+
+	// Start round timer (60 seconds for now) (Can be changed later) (Maybe a setting)
+	go startRoundTimer(room.Code, gameRound.ID, 60*time.Second)
 	
 	// Return response (AI ID and message)
 	return c.JSON(fiber.Map{
 		"message": "Game started",
 		"ai_id":   players[aiIndex].ID, // You can remove this from response later
+	})
+}
+
+
+func startRoundTimer(roomCode string, roundID uint, duration time.Duration) {
+	time.Sleep(duration)
+
+	// TODO: mark round as ended (set AIRevealed true later)
+	var round models.GameRound
+	if err := database.DB.First(&round, roundID).Error; err == nil {
+		// TODO: Logic to update the round phase here if needed
+	}
+
+	// Broadcast voting started
+	ws.BroadcastJSON(roomCode, map[string]string{
+		"event":   "voting_started",
+		"message": "Time's up! Voting has begun.",
 	})
 }
