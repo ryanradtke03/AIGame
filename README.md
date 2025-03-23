@@ -4,19 +4,19 @@
 
 #### 1. Database:
 
-PostgreSQL
+PostgreSQL  
 Docker (Database Container for dev)
 
 #### 2. Backend:
 
 GO (Fiber)
-GoFiber WebSockets
+GoFiber WebSockets  
 GORM
 
 #### 3. Frontend:
 
-TypeScript
-React
+TypeScript  
+React  
 Tailwind
 
 ### To Run Frontend:
