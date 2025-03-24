@@ -37,7 +37,8 @@ Tailwind
 
 ### To Run Backend:
 
-1. Run main entry point
+1. cd backend
+2. Run main entry point
    ```bash
    go run main.go
    ```
