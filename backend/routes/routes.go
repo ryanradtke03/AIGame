@@ -27,6 +27,7 @@ func RegisterRoutes(app *fiber.App) {
 
 	player := api.Group("/players")
 	player.Post("/reconnect", controllers.ReconnectPlayer)
+	player.Get("/in-room/:roomID", controllers.GetPlayersInRoom);
 
 	chat := api.Group("/chat")
 	chat.Post("/send", controllers.SendMessage)

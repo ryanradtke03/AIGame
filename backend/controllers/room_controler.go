@@ -77,6 +77,8 @@ func CreateRoom(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"message":    "Room created successfully",
 		"room_code":  roomCode,
+		"room_id":    room.ID,
+		"owner_id":   player.ID,
 		"session_id": sessionID,
 	})
 }
