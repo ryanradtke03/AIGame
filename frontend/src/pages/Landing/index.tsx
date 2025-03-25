@@ -10,11 +10,12 @@ import { useNavigate } from "react-router-dom";
 import { createRoom, joinRoom } from "../../services/roomService";
 
 const Landing = () => {
+  // Hooks
+  const navigate = useNavigate();
+
   // States
   const [username, setUsername] = useState("");
   const [roomCode, setRoomCode] = useState("");
-
-  const navigate = useNavigate();
 
   // Handlers
   const handleJoinRoom = async () => {
@@ -43,9 +44,11 @@ const Landing = () => {
     try {
       const response = await createRoom(username);
       sessionStorage.setItem("roomCode", response.room_code);
+      sessionStorage.setItem("roomId", response.room_id);
+      sessionStorage.setItem("sessionId", response.session_id);
 
       console.log("Room Created:", response);
-      navigate("/chat");
+      navigate("/waitingroom");
     } catch (err) {
       console.error(err);
       alert("Failed to create room.");
