@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { getPlayersInRoom } from "../../services/playerService";
 
 // Socket
-//import { createRoomSocket } from "../../services/socket/socket";
+import { createRoomSocket } from "../../services/socket/socket";
 
 const WaitingRoom = () => {
   const roomCode = sessionStorage.getItem("roomCode");
@@ -24,11 +24,14 @@ const WaitingRoom = () => {
 
   // Grab players in room
   useEffect(() => {
+    // Check for required data
+    if (roomId === null || !sessionId || roomCode === null) return;
+
+    // Open socket
+    const socket = createRoomSocket(roomCode);
+
+    // Initial fetch of players
     const fetchPlayers = async () => {
-      if (roomId === null || !sessionId || roomCode === null) return;
-
-      //const socket = createRoomSocket(roomCode);
-
       try {
         const data = await getPlayersInRoom(roomId);
         setPlayers(data);
@@ -40,10 +43,23 @@ const WaitingRoom = () => {
       }
     };
 
-    if (roomId && sessionId && roomCode) {
-      console.log("Fetching players...");
-      fetchPlayers();
-    }
+    // Fetch players
+    fetchPlayers();
+
+    // Socket Handling (Handle new players)
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "player_joined") {
+        //setPlayers((prev) => [...prev, data.player]);
+        console.log("New player joined:", data.player);
+      }
+    };
+
+    // Cleanup
+    return () => {
+      // Close socket
+      socket.close();
+    };
   }, [roomId, sessionId, roomCode]);
 
   const handleStartRoom = () => {
